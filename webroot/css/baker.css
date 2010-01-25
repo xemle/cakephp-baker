@@ -1,0 +1,25 @@
+.fileEdit {
+  font-family: courier, fixed;
+  font-size: 90%;
+}
+
+td {
+        text-align: left;
+}
+
+.delete a {
+  color: red;
+}
+
+.tblColName,
+.tblColActions {
+        text-align: left;
+}
+
+.tblColDate {
+        text-align: center;
+}
+
+.tblColNumber {
+        text-align: right;
+}
