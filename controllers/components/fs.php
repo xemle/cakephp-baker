@@ -50,14 +50,14 @@ class FsComponent extends Object {
     if (!$path) {
       $path = $this->controller->params['pass'];
     } elseif (is_string($path)) {
-      $path = explode('/', $path);
+      $path = explode('/', trim($path, '/'));
     }
 
     $fsPath = false;
     if (is_string($this->root)) {
-      $fsPath = $this->root . DS . $path;
+      $fsPath = $this->root . DS . implode(DS, $path);
     } elseif (is_array($this->root)) {
-      if (count($path) > 0) {
+      if (count($this->root) > 1 && count($path) > 0) {
         foreach($this->root as $name => $root) {
           if (is_numeric($name) && basename($root) == $path[0]) {
             $fsPath = $root . DS . implode(DS, array_splice($path, 1));
@@ -67,6 +67,8 @@ class FsComponent extends Object {
             break;
           }
         }
+      } elseif (count($this->root) == 1) {
+        $fsPath = $this->root[0] . DS . implode(DS, $path);
       }
     } 
     if (!file_exists($fsPath)) {
@@ -109,7 +111,7 @@ class FsComponent extends Object {
 
   function read($path) {
     $fsPath = $this->getFsPath($path);
-    if (!$fsPath && is_array($this->root)) {
+    if (!$fsPath && is_array($this->root) && count($this->root) > 1) {
       $dirs = array();
       foreach($this->root as $name => $root) {
         if (is_numeric($name)) {
@@ -122,8 +124,8 @@ class FsComponent extends Object {
       return array($dirs, $files);
     }
 
-    if (!$this->folder->cd($fsPath)) {
-      return array();
+    if (!is_dir($fsPath) || !$this->folder->cd($fsPath)) {
+      return array(false, false);
     }
     $fsPath = Folder::slashTerm($fsPath);
     list($dirs, $files) = $this->folder->read();
@@ -144,7 +146,11 @@ class FsComponent extends Object {
   
   function readTree($fsPath = null) {
     if ($fsPath === null) {
-      if (is_array($this->root)) {
+      if (is_string($this->root)) {
+        $fsPath = $this->root;
+      } elseif (is_array($this->root) && count($this->root) == 1) {
+        $fsPath = $this->root[0];
+      } elseif (is_array($this->root) && count($this->root) > 1) {
         $tree = array();
         foreach($this->root as $name => $root) {
           if (is_numeric($name)) {
@@ -155,7 +161,6 @@ class FsComponent extends Object {
         }
         return $tree;
       }
-      $fsPath = $this->root;
     }
     
     if (!$this->folder->cd($fsPath) || !$this->check($fsPath)) {

@@ -24,16 +24,16 @@
 class BakerController extends AppController {
   var $name = 'Baker';
   
-  var $components = array('Session', 'Security', 'Fs');
+  var $components = array('Session', 'Security', 'Fs', 'Zip');
   
-  var $helpers = array('Html', 'Form', 'Javascript', 'Number', 'Session', 'Fs');
+  var $helpers = array('Html', 'Form', 'Javascript', 'Number', 'Session', 'Fs', 'Geshi.Geshi');
   
   var $uses = null;
   
   function beforeFilter() {
     $this->Security->disabledFields = array('Fs.file');
     // $this->Fs->root = array(ROOT . DS . 'baker', ROOT . DS . 'app');
-    // $this->Fs->exclude = array('.svn', '.diff$', 'users');
+    // $this->Fs->exclude = array('.svn', '.diff$');
     parent::beforeFilter();
   }
   
@@ -41,6 +41,63 @@ class BakerController extends AppController {
     if (!empty($this->data)) {
       if ($this->data['Fs']['action'] != 'none' && $this->data['Fs']['path'] != 'none') {
         if ($this->data['Fs']['action'] == 'cd') {
+          $this->redirect('index/' . $this->data['Fs']['path']);
+        } elseif ($this->data['Fs']['action'] == 'move') {
+          $fsSrcPath = $this->Fs->getFsPath();
+          if (!is_writeable($fsSrcPath)) {
+            $this->Session->setFlash("Move: Source directory is not writeable");
+            $this->redirect('index/' . $this->Fs->getPath());
+          }
+          $fsDstPath = $this->Fs->getFsPath($this->data['Fs']['path']);
+          if (!is_writeable($fsDstPath)) {
+            $this->Session->setFlash("Move: Destination directory is not writeable");
+            $this->redirect('index/' . $this->Fs->getPath());
+          }
+          $fsSrcPath = Folder::slashTerm($fsSrcPath);
+          $fsDstPath = Folder::slashTerm($fsDstPath);
+          $err = $count = 0;
+          foreach($this->data['Fs']['file'] as $file) {
+            if (!$file) {
+              continue;
+            }
+            $count++;
+            if (!@rename($fsSrcPath . $file, $fsDstPath . $file)) {
+              $err++;
+            }
+          }
+          $this->Session->setFlash("Move: Moved $count file(s) to {$this->data['Fs']['path']} ($err errors)");
+          $this->redirect('index/' . $this->data['Fs']['path']);
+        } elseif ($this->data['Fs']['action'] == 'copy') {
+          $fsSrcPath = $this->Fs->getFsPath();
+          if (!is_readable($fsSrcPath)) {
+            $this->Session->setFlash("Copy: Source directory is not readable");
+            $this->redirect('index/' . $this->Fs->getPath());
+          }
+          $fsDstPath = $this->Fs->getFsPath($this->data['Fs']['path']);
+          if (!is_writeable($fsDstPath)) {
+            $this->Session->setFlash("Copy: Destination directory is not writeable");
+            $this->redirect('index/' . $this->Fs->getPath());
+          }
+          $fsSrcPath = Folder::slashTerm($fsSrcPath);
+          $fsDstPath = Folder::slashTerm($fsDstPath);
+          $err = $count = 0;
+          $folder =& new Folder($fsSrcPath);
+          foreach($this->data['Fs']['file'] as $file) {
+            if (!$file) {
+              continue;
+            }
+            $count++;
+            if (is_dir($fsSrcPath . $file)) {
+              if (!$folder->copy(array('from' => $fsSrcPath . $file, 'to' => $fsDstPath . $file))) {
+                $err++;
+              }
+            } else {
+              if (!@copy($fsSrcPath . $file, $fsDstPath . $file)) {
+                $err++;
+              }
+            }
+          }
+          $this->Session->setFlash("Copy: Copied $count file(s) to {$this->data['Fs']['path']} ($err errors)");
           $this->redirect('index/' . $this->data['Fs']['path']);
         }
       }
@@ -66,14 +123,14 @@ class BakerController extends AppController {
 
     if (!$this->Session->check('fs.tree')) {
       $tree = $this->Fs->readTree();
-      $this->Session->write('fs.tree', $tree);
+      //$this->Session->write('fs.tree', $tree);
     } else {
       $tree = $this->Session->read('fs.tree');
     }
 
     $this->set(compact('dirs', 'fileList', 'path', 'canCreateFile', 'tree'));
     $this->data = null;
-                $this->title = basename($path);
+    $this->pageTitle = 'List ' . $path;
   }
   
   function view() {
@@ -86,7 +143,19 @@ class BakerController extends AppController {
     $file =& new File($fsPath);
     $content = $file->read($file);
     $attrs = $this->Fs->getFileAttrs(dirname($fsPath) . DS, basename($fsPath));
-    $this->set(compact('path', 'content', 'attrs'));
+    $ext = strtolower(substr($fsPath, strrpos($fsPath, '.') + 1));
+    switch ($ext) {
+      case 'php': $lang = 'php'; break;
+      case 'js': $lang = 'javascript'; break;
+      case 'css': $lang = 'css'; break;
+      case 'sql': $lang = 'sql'; break;
+      case 'ctp':
+      case 'htm':
+      case 'html': $lang = 'html'; break;
+      default: $lang = '';
+    }
+    $this->set(compact('path', 'content', 'attrs', 'lang'));
+    $this->pageTitle = 'View ' . $path;
   }
   
   function edit() {
@@ -115,6 +184,7 @@ class BakerController extends AppController {
     $content = $file->read($file);
     $attrs = $this->Fs->getFileAttrs(dirname($fsPath) . DS, basename($fsPath));
     $this->set(compact('path', 'content', 'attrs'));
+    $this->pageTitle = 'Edit ' . $path;
   }
   
   function create() {
@@ -201,5 +271,66 @@ class BakerController extends AppController {
     }
     $this->redirect('index/' . $path);
   }  
+
+  function unzip() {
+    $path = $this->Fs->getPath();
+    $fsPath = $this->Fs->getFsPath($path);
+    if (!is_file($fsPath) || !is_writeable(dirname($fsPath))) {
+      $this->Session->setFlash("Could read file");
+      $this->redirect('index/' . dirname($path));
+    }
+    
+    $ext = strtolower(substr($fsPath, strrpos($fsPath, '.') + 1));
+    if ($ext != 'zip') {
+      $this->Session->setFlash("File is not a zip archive");
+      $this->redirect('index/' . dirname($path));
+    }
+
+    $files = $this->Zip->unzip($fsPath);
+    if ($files) {
+      $this->Session->setFlash("Extracted " . count($files) . " file(s)");
+    } else {
+      $this->Session->setFlash("Could not extract archive");
+    }
+    $this->redirect('index/' . dirname($path));
+  }
+  
+  function rename() {
+    if (!empty($this->data)) {
+      $fsPath = Folder::slashTerm($this->Fs->getFsPath());
+      if (!is_dir($fsPath) || !is_writeable($fsPath)) {
+        $this->Session->setFlash("Rename: Folder incorrect");
+        $this->redirect('index');
+      }
+      if (!file_exists($fsPath . $this->data['Fs']['from'])) {
+        $this->Session->setFlash("Rename: File not found");
+        $this->redirect('index/' . $this->Fs->getPath());
+      }
+      if (@rename($fsPath .$this->data['Fs']['from'], $fsPath .$this->data['Fs']['to'])) {
+        $this->Session->setFlash("Renamed {$this->data['Fs']['from']} to {$this->data['Fs']['to']}");
+      } else {
+        $this->Session->setFlash("Could not rename {$this->data['Fs']['from']}");
+      }
+      $this->redirect('index/' . $this->Fs->getPath());
+    }
+    $path = $this->Fs->getPath();
+    if ($path == '') {
+      $this->Session->setFalsh("Rename: Could not rename root");
+      $this->redirect('index');
+    }
+    $fsPath = $this->Fs->getFsPath($path);
+    if (!file_exists($fsPath)) {
+      $this->Session->setFlash("Rename: File not found");
+      $this->redirect('index');
+    }
+    $path = dirname($path);
+    if (!is_writeable($this->Fs->getFsPath($path))) {
+      $this->Session->setFlash("Rename: Could not rename here");
+      $this->redirect('index/' . $path);
+    }
+    $from = basename($fsPath);
+    $this->set(compact('path', 'from'));
+    $this->pageTitle = 'Rename ' . $path . $from;
+  }
 }
 ?>

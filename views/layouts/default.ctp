@@ -27,7 +27,7 @@
 <head>
   <?php echo $html->charset(); ?>
   <title>
-    <?php __('CakePHP: the rapid development php framework:'); ?>
+    <?php __('Baker Editor:'); ?>
     <?php echo $title_for_layout; ?>
   </title>
   <?php
@@ -42,7 +42,7 @@
 <body>
   <div id="container">
     <div id="header">
-      <h1><?php echo $html->link(__('CakePHP: the rapid development php framework', true), 'http://cakephp.org'); ?></h1>
+      <h1><?php echo $html->link(__('Baker: The simple online editor for CakePHP', true), 'http://www.phtagr.org'); ?></h1>
     </div>
     <div id="content">
 

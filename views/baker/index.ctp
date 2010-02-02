@@ -1,6 +1,6 @@
 <h1>List <?php echo $fs->pathLink($path); ?></h1>
 <?php $session->flash(); ?>
-<?php echo $form->create(null, array('action' => 'index')); ?>
+<?php echo $form->create(null, array('action' => 'index/' . $path)); ?>
 
 <?php
   $headers = array('', 'Name', 'Size', 'Date', 'Actions');
@@ -9,9 +9,10 @@
   $cells = array();
   foreach($dirs as $dir) {
     $actions = array();
-    $actions[] = $html->link('delete', 'delete/' . $path . $dir, false, "Delete folder " . $path . $dir . '?');
+    $actions[] = $html->link('rename', 'rename/' . $path . $dir);
+    $actions[] = "<span class='delete'>" . $html->link('delete', 'delete/' . $path . $dir, false, "Delete folder " . $path . $dir . '?') . "</span>";
     $cells[] = array(
-      $form->input('Fs.file][', array('value' => $path . $dir, 'type' => 'checkbox', 'label' => false, 'secure' => false)),
+      $form->input('Fs.file][', array('value' => $dir, 'type' => 'checkbox', 'label' => false, 'secure' => false)),
       $html->link($dir, 'index/' . $path . $dir),
       0,
       '',
@@ -21,12 +22,16 @@
   
   foreach($fileList as $file => $attr) {
     $actions = array();
+      $actions[] = $html->link('rename', 'rename/' . $path . $file);
     if ($attr['type'] == 'text' && $attr['writeable']) {
       $actions[] = $html->link('edit', 'edit/' . $path . $file);
     }
+    if ($attr['type'] == 'archive' && $attr['writeable']) {
+      $actions[] = $html->link('unzip', 'unzip/' . $path . $file);
+    }
     $actions[] = "<span class='delete'>" . $html->link('delete', 'delete/' . $path . $file, false, "Delete file " . $file . '?') . "</span>";
     $cells[] = array(
-      $form->input('Fs.file][', array('value' => $path . $file, 'type' => 'checkbox', 'label' => false, 'secure' => false)),
+      $form->input('Fs.file][', array('value' => $file, 'type' => 'checkbox', 'label' => false, 'secure' => false)),
       $html->link($file, 'view/' . $path . $file),
       $number->toReadableSize($attr['size']),
       date('Y-m-d H:i:s', $attr['time']),
@@ -46,7 +51,9 @@
 <?php 
   $actionOptions = array(
     'none' => 'Select Action',
-    'cd' => 'Change directory to ...'
+    'cd' => 'Change directory to ...',
+    'move' => 'Move files to directory ...',
+    'copy' => 'Copy files to directory ...'
     );
   echo $form->input('Fs.action', array('type' => 'select', 'options' => $actionOptions, 'label' => false, 'div' => false)); ?>
 <?php 
