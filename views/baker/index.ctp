@@ -53,7 +53,8 @@
     'none' => 'Select Action',
     'cd' => 'Change directory to ...',
     'move' => 'Move files to directory ...',
-    'copy' => 'Copy files to directory ...'
+    'copy' => 'Copy files to directory ...',
+    'delete' => 'Delete selected files'
     );
   echo $form->input('Fs.action', array('type' => 'select', 'options' => $actionOptions, 'label' => false, 'div' => false)); ?>
 <?php 

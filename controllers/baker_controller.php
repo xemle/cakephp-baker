@@ -31,18 +31,22 @@ class BakerController extends AppController {
   var $uses = null;
   
   function beforeFilter() {
+    // $this->Security->loginOptions = array('type' => 'basic', 'realm' => 'Baker for CakePHP');
+    // $this->Security->loginUsers = array('admin' => 'admin');
+    // $this->Security->requireLogin();
+
     $this->Security->disabledFields = array('Fs.file');
-    // $this->Fs->root = array(ROOT . DS . 'baker', ROOT . DS . 'app');
-    // $this->Fs->exclude = array('.svn', '.diff$');
+    // $this->Fs->root = array(ROOT . DS . 'app');
+    $this->Fs->exclude = array('.svn', '.diff$', 'user\/');
     parent::beforeFilter();
   }
   
   function index() {
     if (!empty($this->data)) {
-      if ($this->data['Fs']['action'] != 'none' && $this->data['Fs']['path'] != 'none') {
-        if ($this->data['Fs']['action'] == 'cd') {
+      if ($this->data['Fs']['action'] != 'none') {
+        if ($this->data['Fs']['action'] == 'cd' && $this->data['Fs']['path'] != 'none') {
           $this->redirect('index/' . $this->data['Fs']['path']);
-        } elseif ($this->data['Fs']['action'] == 'move') {
+        } elseif ($this->data['Fs']['action'] == 'move' && $this->data['Fs']['path'] != 'none') {
           $fsSrcPath = $this->Fs->getFsPath();
           if (!is_writeable($fsSrcPath)) {
             $this->Session->setFlash("Move: Source directory is not writeable");
@@ -67,7 +71,7 @@ class BakerController extends AppController {
           }
           $this->Session->setFlash("Move: Moved $count file(s) to {$this->data['Fs']['path']} ($err errors)");
           $this->redirect('index/' . $this->data['Fs']['path']);
-        } elseif ($this->data['Fs']['action'] == 'copy') {
+        } elseif ($this->data['Fs']['action'] == 'copy' && $this->data['Fs']['path'] != 'none') {
           $fsSrcPath = $this->Fs->getFsPath();
           if (!is_readable($fsSrcPath)) {
             $this->Session->setFlash("Copy: Source directory is not readable");
@@ -99,6 +103,33 @@ class BakerController extends AppController {
           }
           $this->Session->setFlash("Copy: Copied $count file(s) to {$this->data['Fs']['path']} ($err errors)");
           $this->redirect('index/' . $this->data['Fs']['path']);
+        } elseif ($this->data['Fs']['action'] == 'delete') {
+          $fsSrcPath = $this->Fs->getFsPath();
+          if (!is_writeable($fsSrcPath)) {
+            $this->Session->setFlash("Delete: Source directory is not writeable");
+            $this->redirect('index/' . $this->Fs->getPath());
+          }
+          $fsSrcPath = Folder::slashTerm($fsSrcPath);
+
+          $err = $count = 0;
+          $folder =& new Folder($fsSrcPath);
+          foreach($this->data['Fs']['file'] as $file) {
+            if (!$file) {
+              continue;
+            }
+            $count++;
+            if (is_dir($fsSrcPath . $file)) {
+              if (!$folder->delete($fsSrcPath . $file)) {
+                $err++;
+              }
+            } else {
+              if (!@unlink($fsSrcPath . $file)) {
+                $err++;
+              }
+            }
+          }
+          $this->Session->setFlash("Delete: Deleted $count file(s) ($err errors)");
+          $this->redirect('index/' . $this->Fs->getPath());
         }
       }
     }
