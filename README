@@ -1,9 +1,30 @@
 CakePHP Baker
 
-This CakePHP application is a simple online editor to develop online
-your source code. 
+This CakePHP application is a simple online editor to develop online your
+source code. You can upload, create, edit, view, and rename text files online.
+The view supports syntax highlighting via Geshi (http://qbnz.com/highlighter)
+Extracting ZIP archive on the host is also supported.
 
-Edit controllers/baker_controller.php and edit it for you need
+A demo is available at 
+
+http://baker.phtagr.org
+
+
+Installation:
+
+This quick installation setup assumes a local LAMP 
+
+  $ cd /var/www
+  $ git clone git://github.com/cakephp/cakephp.git cakephp
+  $ cd cakephp
+  $ git@github.com:xemle/cakephp-baker.git baker
+
+Open http://localhost/cake/baker  
+
+
+Configurations:
+
+Edit baker/controllers/baker_controller.php and adapt the beforeFilter() for you need
 
   function beforeFilter() {
     // $this->Security->loginOptions = array('type' => 'basic', 'realm' => 'Baker for CakePHP');
@@ -17,4 +38,13 @@ Edit controllers/baker_controller.php and edit it for you need
   }
 
 
+Notes:
+
 Baker got its inspiration from http://webpy.org
+
+The editor was very helpful to maintain and develop code online in pulic
+Internet cafes with slow Internet connections for http://www.phtagr.org. Since
+Baker is a very basic online editor, please have also a look at:
+
+- http://mozillalabs.com/skywriter - Code in the cloud
+- https://codenrun.com - develop the web faster
