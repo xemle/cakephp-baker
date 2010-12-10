@@ -1,0 +1,20 @@
+CakePHP Baker
+
+This CakePHP application is a simple online editor to develop online
+your source code. 
+
+Edit controllers/baker_controller.php and edit it for you need
+
+  function beforeFilter() {
+    // $this->Security->loginOptions = array('type' => 'basic', 'realm' => 'Baker for CakePHP');
+    // $this->Security->loginUsers = array('admin' => 'admin');
+    // $this->Security->requireLogin();
+
+    $this->Security->disabledFields = array('Fs.file');
+    // $this->Fs->root = array(ROOT . DS . 'app');
+    $this->Fs->exclude = array('.svn', '.diff$', 'user\/');
+    parent::beforeFilter();
+  }
+
+
+Baker got its inspiration from http://webpy.org
