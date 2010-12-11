@@ -1,13 +1,18 @@
-CakePHP Baker
+Baker - Free simple online editor for CakePHP
 
 This CakePHP application is a simple online editor to develop online your
 source code. You can upload, create, edit, view, and rename text files online.
 The view supports syntax highlighting via Geshi (http://qbnz.com/highlighter)
 Extracting ZIP archive on the host is also supported.
 
+
 A demo is available at 
 
-http://baker.phtagr.org
+  http://baker.phtagr.org
+
+Screenshots are available at
+
+  http://demo.phtagr.org/explorer/tag/baker
 
 
 Installation:
